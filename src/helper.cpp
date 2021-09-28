@@ -29,6 +29,7 @@ int detectKeypoints(boost::circular_buffer<DataFrame> *dataBuffer,int detType){
     std::vector<cv::KeyPoint> keypoints;
 
     double t = (double)cv::getTickCount();
+
     switch(detType){
     case 0: // SHITOMASI:
         detKeypointsShiTomasi(keypoints, (dataBuffer->end() - 1)->cameraImg, false);break;
@@ -96,10 +97,11 @@ int detectKeypoints(boost::circular_buffer<DataFrame> *dataBuffer,int detType){
 
     (dataBuffer->end()-1)->keypoints = keypoints;
 
-    return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
+    return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
 
     //// EOF STUDENT ASSIGNMENT
 }
+
 int descKeypoints_helper(boost::circular_buffer<DataFrame> *dataBuffer,  int descType){
 return descKeypoints(dataBuffer,   descType);
 }

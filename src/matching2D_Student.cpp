@@ -8,51 +8,65 @@ int matchDescriptors( boost::circular_buffer<DataFrame>  *dataBuffer, int descTy
 
 {
     //// configure matcher
-    //// BINARY descriptors ->  BRISK, BRIEF, ORB, FREAK, and (A)KAZE. */
+    //// BINARY descriptors ->  BRISK, BRIEF, ORB, FREAK, and AKAZE. */
     //// HOG descriptors i->  SIFT
 
     bool crossCheck = false;
+    bool convert = true;
+    if (selectorType==0) crossCheck = true;
     cv::Ptr<cv::DescriptorMatcher> matcher;
 
-    if (matcherType == 0) {//MAT_BF    Brute Force
-        if(descType==5)matcher = cv::BFMatcher::create(cv::NORM_L2, crossCheck); //SIFT
-        else matcher = cv::BFMatcher::create(cv::NORM_HAMMING, crossCheck);
-     }
-    else //MAT_FLANN
-    {
-        if(descType==5)matcher = cv::FlannBasedMatcher::create(); //SIFT
-        else {
-            const cv::Ptr<cv::flann::IndexParams>& indexParams = cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2);
-            matcher = cv::makePtr<cv::FlannBasedMatcher>(indexParams);}
-    }
+    try{
+        if (matcherType == 0) {//MAT_BF    Brute Force
+            if(descType==5)matcher = cv::BFMatcher::create(cv::NORM_L2, crossCheck); //SIFT
+            else matcher = cv::BFMatcher::create(cv::NORM_HAMMING, crossCheck);
+        }
+        else //MAT_FLANN
+        {
+            convert = false;
+            matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+        }
 
-    //if(dataBuffer->at(0).descriptors.type()!=CV_32F){
-        //                    descSource.convertTo(descSource, CV_32F);
-        //                    descRef.convertTo(descRef, CV_32F);
-   // }
+        //  perform matching task
+        double t = (double)cv::getTickCount();
 
-   //  perform matching task
-    double t = (double)cv::getTickCount();
-    if (selectorType == 0) //SEL_NN
-    { // nearest neighbor (best match)
-        matcher->match(dataBuffer->at(0).descriptors, dataBuffer->at(1).descriptors, (dataBuffer->end()-1)->kptMatches); // Finds the best match for each descriptor in desc1
-    }
-    else //SEL_KNN
-    { // k nearest neighbors (k=2)
-        int k = 2;
-        std::vector<std::vector<cv::DMatch>> knn_matches;
-        matcher->knnMatch(dataBuffer->at(0).descriptors, dataBuffer->at(1).descriptors, knn_matches, k);
-        // Filter matches using descriptor distance ratio test
-        double minDescDistRatio = 0.8;
-        for (auto it : knn_matches) {
-            // The returned knn_matches vector contains some nested vectors with size < 2 !?
-            if ( 2 == it.size() && (it[0].distance < minDescDistRatio * it[1].distance) ) {
-                (dataBuffer->end()-1)->kptMatches.push_back(it[0]);
+        if (selectorType == 0) //SEL_NN
+        { // nearest neighbor (best match)
+            if(convert ||dataBuffer->at(0).descriptors.type()==CV_32F )
+            matcher->match(dataBuffer->at(0).descriptors, dataBuffer->at(1).descriptors, (dataBuffer->end()-1)->kptMatches);
+            else{
+                cv::Mat  des1 ,des2 ;
+                dataBuffer->at(0).descriptors.convertTo(des1, CV_32F);
+                dataBuffer->at(1).descriptors.convertTo(des2, CV_32F);
+                matcher->match(des1, des2, (dataBuffer->end()-1)->kptMatches);
+              }
+        }
+        else //SEL_KNN
+        { // k nearest neighbors k=2
+            std::vector<std::vector<cv::DMatch>> knn_matches;
+
+            if(convert ||dataBuffer->at(0).descriptors.type()==CV_32F )
+            matcher->match(dataBuffer->at(0).descriptors, dataBuffer->at(1).descriptors, (dataBuffer->end()-1)->kptMatches);
+            else{
+                cv::Mat  des1 ,des2 ;
+                dataBuffer->at(0).descriptors.convertTo(des1, CV_32F);
+                dataBuffer->at(1).descriptors.convertTo(des2, CV_32F);
+                matcher->match(des1, des2, (dataBuffer->end()-1)->kptMatches);
+              }
+            // Filter matches using descriptor distance ratio test
+            double minDescDistRatio = 0.8;
+            for (auto it : knn_matches) {
+                // The returned knn_matches vector contains some nested vectors with size < 2 !?
+                if ( 2 == it.size() && (it[0].distance < minDescDistRatio * it[1].distance) ) {
+                    (dataBuffer->end()-1)->kptMatches.push_back(it[0]);
+                }
             }
         }
+        return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
     }
-     return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
-
+    catch (cv::Exception) {
+        return -1;
+    }
 }
 
 
@@ -78,19 +92,18 @@ int descKeypoints(boost::circular_buffer<DataFrame> *dataBuffer,  int descType)
     case 3: //FREAK_:
         descriptor = cv::xfeatures2d::FREAK::create();break;
     case 4: //AKAZE_:
-         return -1;
         descriptor = cv::AKAZE::create();break;
     case 5: // SIFT_:
         descriptor = cv::SIFT::create();break;
     default:;
-        return 0;
+        return -1;
     }
 
     descriptor->compute((dataBuffer->end()-1)->cameraImg, (dataBuffer->end()-1)->keypoints, (dataBuffer->end()-1)->descriptors);
     } catch (cv::Exception) {
       return -1;
     }
-     return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
+     return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
 }
 
 // Detect keypoints in image using the traditional Shi-Thomasi detector
@@ -118,29 +131,30 @@ int detKeypointsShiTomasi(vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bV
         newKeyPoint.size = blockSize;
         keypoints.push_back(newKeyPoint);
     }
-     return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
+     return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
 }
 
 int detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img,  int detType, bool bVis)
 {
     cv::Ptr<cv::Feature2D> detector ;
-    double t = (double)cv::getTickCount();
+
     switch (detType) {
-    case 0: //FAST:
+    case 2: //FAST:
         detector = cv::FastFeatureDetector::create();break;
-    case 1:// BRISK:
+    case 3:// BRISK:
         detector = cv::BRISK::create();break;
-    case 2: //ORB:
+    case 4: //ORB:
         detector = cv::ORB::create();break;
-    case 3: //AKAZE:
+    case 5: //AKAZE:
         detector = cv::AKAZE::create();break;
-    case 4: //SIFT:
+    case 6: //SIFT:
         detector = cv::SIFT::create();break;
-    default: return 0 ;
+    default: return -1 ;
     }
 
+     double t = (double)cv::getTickCount();
      detector->detect(img, keypoints);
-      return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
+     return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
 }
 
 int  detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis)
@@ -200,5 +214,5 @@ int  detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool
         }
     }
 
-     return (((double)cv::getTickCount() - t)*1000.0) / cv::getTickFrequency();
+     return (((double)cv::getTickCount() - t)*1000000.0) / cv::getTickFrequency();
 }

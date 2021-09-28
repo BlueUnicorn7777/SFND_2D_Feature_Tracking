@@ -24,10 +24,11 @@ const string SelectorTypes[]={"SEL_NN     ","SEL_KNN    "};
 /* MAIN PROGRAM */
 int main(int argc, const char *argv[])
 {
-    if(argc<2){
+    if(argc<3){
         std::cout<<"Please specify the following arguments to execute \n"<<
                    "./2D_feature_tracking path\n"
-                   " path = path to image folder\n" ;
+                   " path = path to image folder\n"
+                   "bVis = true , false , avg" ;
         return 0;
     }
 
@@ -43,8 +44,10 @@ int main(int argc, const char *argv[])
             for(int detector = 0 ; detector<7 ;detector++){ //Dtector Loop
                 for(int Descriptor = 0 ; Descriptor<6;Descriptor++){ //descriptor Loop
                     boost::circular_buffer<DataFrame> dataBuffer(dataBufferSize);
+                    float TD,KM;
                     for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
                     {
+
                         int t0 = readImage(argv[1],imgStartIndex + imgIndex,&dataBuffer);
                         //std::cout << "#1 : LOAD IMAGE INTO BUFFER done time(ms) = "<< t0 << std::endl;
                         int t1 = detectKeypoints(&dataBuffer,detector);
@@ -53,13 +56,24 @@ int main(int argc, const char *argv[])
                         int t4 =0 ;
                         if (dataBuffer.size() > 1) // wait until at least two images have been processed
                         t4 = matchDescriptors_helper(&dataBuffer, Descriptor, matcherType, selectorType);
-
+                        if (strcmp(argv[2],"avg"))
                         cout<<MatcherTypes[matcherType]<<"\t"<<SelectorTypes[selectorType]<<"\t"<<DetectorTypes[detector]<<"\t"<<DescreptorTypes[Descriptor]<<"\t"
                            <<imgIndex<<"\t"<<(dataBuffer.end()-1)->keypoints.size()<<"\t"<<t1<<"\t"
                           <<(dataBuffer.end()-1)->descriptors.size()<<"\t"<<t3<<"\t"<<(dataBuffer.end()-1)->kptMatches.size()<<"\t"<<t4<<"\n";
-                        if (dataBuffer.size() > 1){
-                        cv::Mat matchImg = ((dataBuffer.end() - 1)->cameraImg).clone();
+                        if(imgIndex==0){
+                            TD=0;
+                            KM=0;
+                        }
+                        else
+                        {
+                            TD+=t3;
+                            KM+=(dataBuffer.end()-1)->kptMatches.size();
+                        }
 
+                        if ((dataBuffer.size() > 1)&(!strcmp(argv[2],"true"))){
+                        string windowname =MatcherTypes[matcherType]+SelectorTypes[selectorType]+DetectorTypes[detector]+
+                                DescreptorTypes[Descriptor];
+                        cv::Mat matchImg = ((dataBuffer.end() - 1)->cameraImg).clone();
                                     cv::drawMatches((dataBuffer.end() - 2)->cameraImg, (dataBuffer.end() - 2)->keypoints,
                                                     (dataBuffer.end() - 1)->cameraImg, (dataBuffer.end() - 1)->keypoints,
                                                     (dataBuffer.end() - 1)->kptMatches, matchImg,
@@ -67,13 +81,18 @@ int main(int argc, const char *argv[])
                                                     std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
                         //cv::drawKeypoints((dataBuffer.end() - 1)->cameraImg, (dataBuffer.end() - 1)->keypoints, matchImg, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-                        cv::namedWindow(DetectorTypes[detector], cv::WINDOW_NORMAL);
-                        cv::resizeWindow(DetectorTypes[detector], 800, 600);
-                        cv::moveWindow(DetectorTypes[detector], 20, 20);
-                        cv::imshow(DetectorTypes[detector], matchImg);
+                        cv::namedWindow(windowname, cv::WINDOW_NORMAL);
+                        cv::moveWindow(windowname, 20, 20);
+                        cv::resizeWindow(windowname, 800, 600);
+                        cv::imshow(windowname, matchImg);
                         //std::cout << "Press key to continue to next image" << std::endl;
                         cv::waitKey(100); // wait for key to be pressed
+
                     }}
+                    if (!strcmp(argv[2],"avg"))
+                    cout<<MatcherTypes[matcherType]<<"\t"<<SelectorTypes[selectorType]<<"\t"<<DetectorTypes[detector]<<"\t"<<DescreptorTypes[Descriptor]<<"\t"
+                      <<TD/imgEndIndex<<"\t"<<KM/imgEndIndex<<"\n";
+                    cv::waitKey(100); // wait for key to be pressed
                     cv::destroyAllWindows();
                 }
 
