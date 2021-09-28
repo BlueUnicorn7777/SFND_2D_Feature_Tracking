@@ -28,7 +28,7 @@ int main(int argc, const char *argv[])
         std::cout<<"Please specify the following arguments to execute \n"<<
                    "./2D_feature_tracking path\n"
                    " path = path to image folder\n"
-                   "bVis = true , false , avg" ;
+                   "bVis = true , false , avg \n" ;
         return 0;
     }
 
@@ -44,7 +44,7 @@ int main(int argc, const char *argv[])
             for(int detector = 0 ; detector<7 ;detector++){ //Dtector Loop
                 for(int Descriptor = 0 ; Descriptor<6;Descriptor++){ //descriptor Loop
                     boost::circular_buffer<DataFrame> dataBuffer(dataBufferSize);
-                    float TD,KM;
+                    float TD=0,KM=0;
                     for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
                     {
 
@@ -60,15 +60,9 @@ int main(int argc, const char *argv[])
                         cout<<MatcherTypes[matcherType]<<"\t"<<SelectorTypes[selectorType]<<"\t"<<DetectorTypes[detector]<<"\t"<<DescreptorTypes[Descriptor]<<"\t"
                            <<imgIndex<<"\t"<<(dataBuffer.end()-1)->keypoints.size()<<"\t"<<t1<<"\t"
                           <<(dataBuffer.end()-1)->descriptors.size()<<"\t"<<t3<<"\t"<<(dataBuffer.end()-1)->kptMatches.size()<<"\t"<<t4<<"\n";
-                        if(imgIndex==0){
-                            TD=0;
-                            KM=0;
-                        }
-                        else
-                        {
-                            TD+=t3;
+
+                            TD+=t3+t4;
                             KM+=(dataBuffer.end()-1)->kptMatches.size();
-                        }
 
                         if ((dataBuffer.size() > 1)&(!strcmp(argv[2],"true"))){
                         string windowname =MatcherTypes[matcherType]+SelectorTypes[selectorType]+DetectorTypes[detector]+
@@ -90,8 +84,8 @@ int main(int argc, const char *argv[])
 
                     }}
                     if (!strcmp(argv[2],"avg"))
-                    cout<<MatcherTypes[matcherType]<<"\t"<<SelectorTypes[selectorType]<<"\t"<<DetectorTypes[detector]<<"\t"<<DescreptorTypes[Descriptor]<<"\t"
-                      <<TD/imgEndIndex<<"\t"<<KM/imgEndIndex<<"\n";
+                    cout<<MatcherTypes[matcherType]<<SelectorTypes[selectorType]<<DetectorTypes[detector]<<DescreptorTypes[Descriptor]<<"\t"
+                      <<TD/(imgEndIndex+1)<<"\t"<<KM/imgEndIndex<<"\n";
                     cv::waitKey(100); // wait for key to be pressed
                     cv::destroyAllWindows();
                 }
