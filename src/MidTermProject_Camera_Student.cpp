@@ -61,7 +61,7 @@ int main(int argc, const char *argv[])
                            <<imgIndex<<"\t"<<(dataBuffer.end()-1)->keypoints.size()<<"\t"<<t1<<"\t"
                           <<(dataBuffer.end()-1)->descriptors.size()<<"\t"<<t3<<"\t"<<(dataBuffer.end()-1)->kptMatches.size()<<"\t"<<t4<<"\n";
 
-                            TD+=t3+t4;
+                            TD+=t1+t3;
                             KM+=(dataBuffer.end()-1)->kptMatches.size();
 
                         if ((dataBuffer.size() > 1)&(!strcmp(argv[2],"true"))){
