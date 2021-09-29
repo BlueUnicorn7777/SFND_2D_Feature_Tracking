@@ -53,9 +53,8 @@ Below chart shows the data from Data/Data_avg.csv. The data is sorted in increas
 <img src="Data/MatchedKP.png" width="820" height="400" />
 
 #### MP.9 Performance Evaluation 3
-Below is the zoom in the left side ( less time) of the MatchedKP.png file and corresponding max KP are detected and highlighted in yellow in the data sheet. Looking at the numbers we can see that the highlighted combinations show 280-400 keypoint maches in less than 10 ms on test computer. These results agree with the above obesrvation of FAST and BRISK algoritms.
-  
-<img src="Data/BestAlgo.png" width="820" height="400" />
+Below is the filtered data for matches > 250 and time < 50 ms showing the best performing algorithms. As mentioned above the FAST and BRISK will outperform. The time here is total time = detector+descriptor , the keypoint match time is negligble. Also the erronous data with 0 matches is removed from the study.  
+<img src="Data/BestAlgoNames.png" width="850" height="850" />
 
 
 
