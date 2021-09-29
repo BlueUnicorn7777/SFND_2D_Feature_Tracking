@@ -26,7 +26,7 @@ int main(int argc, const char *argv[])
 {
     if(argc<3){
         std::cout<<"Please specify the following arguments to execute \n"<<
-                   "./2D_feature_tracking path\n"
+                   "./2D_feature_tracking path bVis\n"
                    " path = path to image folder\n"
                    "bVis = true , false , avg \n" ;
         return 0;
