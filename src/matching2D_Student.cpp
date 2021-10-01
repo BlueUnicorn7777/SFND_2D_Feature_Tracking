@@ -56,8 +56,8 @@ int matchDescriptors( boost::circular_buffer<DataFrame>  *dataBuffer, int descTy
             // Filter matches using descriptor distance ratio test
             double minDescDistRatio = 0.8;
             for (auto it : knn_matches) {
-                // The returned knn_matches vector contains some nested vectors with size < 2 !?
-                if ( 2 == it.size() && (it[0].distance < minDescDistRatio * it[1].distance) ) {
+                if(it.size()==2)
+                if (it[0].distance < minDescDistRatio * it[1].distance)  {
                     (dataBuffer->end()-1)->kptMatches.push_back(it[0]);
                 }
             }
